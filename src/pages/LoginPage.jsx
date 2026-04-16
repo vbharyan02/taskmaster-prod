@@ -14,7 +14,7 @@ export default function LoginPage() {
     if (!email || !password) { setError('Email and password are required.'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { console.error(error.message); setError(error.message); return }
+    if (error) { setError(error.message); return }
     navigate('/')
   }
 
