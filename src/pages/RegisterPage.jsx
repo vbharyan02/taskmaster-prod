@@ -13,10 +13,12 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
     setMessage('')
+    if (!email || !password) { setError('Email and password are required.'); return }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) setError(error.message)
-    else if (data.session) navigate('/')
-    else setMessage('Check your email to confirm your account.')
+    if (error) { console.error(error.message); setError(error.message); return }
+    if (data.session) navigate('/')
+    else setMessage('Account created! Check your email to confirm, then log in.')
   }
 
   return (
