@@ -1,66 +1,31 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import supabase from './lib/supabase'
-import useAuthStore from './store/authStore'
-import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashboardPage'
-import ExpensesListPage from './pages/ExpensesListPage'
-import ExpenseDetailPage from './pages/ExpenseDetailPage'
-import CategoriesListPage from './pages/CategoriesListPage'
+import MainPage from './pages/MainPage'
 
 export default function App() {
-  const { initialize, setSession } = useAuthStore()
+  const [session, setSession] = useState(undefined)
 
   useEffect(() => {
-    initialize()
-
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
-
     return () => subscription.unsubscribe()
   }, [])
+
+  if (session === undefined) return null
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/expenses"
-          element={
-            <ProtectedRoute>
-              <ExpensesListPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/expenses/:id"
-          element={
-            <ProtectedRoute>
-              <ExpenseDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/categories"
-          element={
-            <ProtectedRoute>
-              <CategoriesListPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
+        <Route path="/register" element={session ? <Navigate to="/" /> : <RegisterPage />} />
+        <Route path="/" element={session ? <MainPage /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )
