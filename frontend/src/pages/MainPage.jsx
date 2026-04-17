@@ -3,46 +3,48 @@ import { useNavigate } from 'react-router-dom'
 import supabase from '../lib/supabase'
 
 export default function MainPage() {
-  const [tasks, setTasks] = useState([])
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [priority, setPriority] = useState('medium')
-  const [dueDate, setDueDate] = useState('')
+  const [workouts, setWorkouts] = useState([])
+  const [exerciseName, setExerciseName] = useState('')
+  const [sets, setSets] = useState('')
+  const [reps, setReps] = useState('')
+  const [weight, setWeight] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  useEffect(() => { fetchTasks() }, [])
+  useEffect(() => { fetchWorkouts() }, [])
 
-  async function fetchTasks() {
+  async function fetchWorkouts() {
     const { data, error } = await supabase
-      .from('tasks')
+      .from('workouts')
       .select('*')
       .order('created_at', { ascending: false })
     if (error) setError(error.message)
-    else setTasks(data)
+    else setWorkouts(data)
   }
 
   async function handleCreate(e) {
     e.preventDefault()
     setError('')
     const { data: { user } } = await supabase.auth.getUser()
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({ title, description, priority, due_date: dueDate || null, status: 'open', completed: false, user_id: user.id })
+    const { error } = await supabase
+      .from('workouts')
+      .insert({ exercise_name: exerciseName, sets: Number(sets), reps: Number(reps), weight: Number(weight), date, user_id: user.id })
       .select()
       .single()
-    if (error) { setError(error.message); return }
-    setTasks([data, ...tasks])
-    setTitle('')
-    setDescription('')
-    setPriority('medium')
-    setDueDate('')
+    if (error) {
+      setError(error.message)
+    } else {
+      setExerciseName(''); setSets(''); setReps(''); setWeight('')
+      setDate(new Date().toISOString().slice(0, 10))
+      fetchWorkouts()
+    }
   }
 
   async function handleDelete(id) {
-    const { error } = await supabase.from('tasks').delete().eq('id', id)
+    const { error } = await supabase.from('workouts').delete().eq('id', id)
     if (error) setError(error.message)
-    else setTasks(tasks.filter(t => t.id !== id))
+    else setWorkouts(w => w.filter(x => x.id !== id))
   }
 
   async function handleLogout() {
@@ -53,69 +55,44 @@ export default function MainPage() {
   return (
     <div className="max-w-lg mx-auto mt-10 px-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">My Tasks</h1>
-        <button onClick={handleLogout} className="bg-blue-600 text-white px-4 py-2 rounded text-sm">
-          Logout
-        </button>
+        <h1 className="text-2xl font-bold">Workouts</h1>
+        <button onClick={handleLogout} className="bg-gray-200 px-3 py-1 rounded text-sm">Logout</button>
       </div>
 
-      <form onSubmit={handleCreate} className="flex flex-col gap-2 mb-6">
+      <form onSubmit={handleCreate} className="space-y-3 mb-8">
         <input
           type="text"
-          placeholder="Task title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
+          placeholder="Exercise name"
+          value={exerciseName}
+          onChange={e => setExerciseName(e.target.value)}
           className="border rounded px-3 py-2 w-full"
           required
         />
-        <input
-          type="text"
-          placeholder="Description (optional)"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          className="border rounded px-3 py-2 w-full"
-        />
-        <select
-          value={priority}
-          onChange={e => setPriority(e.target.value)}
-          className="border rounded px-3 py-2 w-full"
-        >
-          <option value="low">Low priority</option>
-          <option value="medium">Medium priority</option>
-          <option value="high">High priority</option>
-        </select>
-        <input
-          type="date"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-          className="border rounded px-3 py-2 w-full"
-        />
+        <div className="flex gap-2">
+          <input type="number" placeholder="Sets" value={sets} onChange={e => setSets(e.target.value)}
+            className="border rounded px-3 py-2 w-full" required min="1" />
+          <input type="number" placeholder="Reps" value={reps} onChange={e => setReps(e.target.value)}
+            className="border rounded px-3 py-2 w-full" required min="1" />
+          <input type="number" placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)}
+            className="border rounded px-3 py-2 w-full" min="0" step="0.5" />
+        </div>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="border rounded px-3 py-2 w-full" required />
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-          Add Task
-        </button>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded w-full">Add Workout</button>
       </form>
 
-      <ul className="flex flex-col gap-2">
-        {tasks.map(task => (
-          <li key={task.id} className="flex items-start justify-between border rounded px-3 py-2">
+      <ul className="space-y-2">
+        {workouts.map(w => (
+          <li key={w.id} className="flex justify-between items-center border rounded px-3 py-2">
             <div>
-              <p className={`font-medium ${task.completed ? 'line-through text-gray-400' : ''}`}>
-                {task.title}
-              </p>
-              {task.description && <p className="text-sm text-gray-500">{task.description}</p>}
-              <p className="text-xs text-gray-400">
-                Priority: {task.priority}{task.due_date ? ` · Due: ${task.due_date}` : ''}
-              </p>
+              <span className="font-medium">{w.exercise_name}</span>
+              <span className="text-sm text-gray-500 ml-2">{w.sets}x{w.reps} @ {w.weight}kg — {w.date}</span>
             </div>
-            <button
-              onClick={() => handleDelete(task.id)}
-              className="text-red-500 text-sm ml-2 shrink-0"
-            >
-              Delete
-            </button>
+            <button onClick={() => handleDelete(w.id)} className="text-red-500 text-sm ml-4">Delete</button>
           </li>
         ))}
+        {workouts.length === 0 && <p className="text-gray-400 text-sm">No workouts yet. Add one above.</p>}
       </ul>
     </div>
   )

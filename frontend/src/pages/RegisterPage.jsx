@@ -14,18 +14,19 @@ export default function RegisterPage() {
     setError('')
     setMessage('')
     const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) { setError(error.message); return }
-    if (data?.session) {
+    if (error) {
+      setError(error.message)
+    } else if (data.session) {
       navigate('/')
     } else {
-      setMessage('Check your email for a confirmation link.')
+      setMessage('Check your email to confirm your account.')
     }
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-20">
+    <div className="max-w-sm mx-auto mt-20 px-4">
       <h1 className="text-2xl font-bold mb-6">Register</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
           placeholder="Email"
@@ -44,12 +45,12 @@ export default function RegisterPage() {
         />
         {error && <p className="text-red-500 text-sm">{error}</p>}
         {message && <p className="text-green-600 text-sm">{message}</p>}
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded w-full">
           Register
         </button>
       </form>
-      <p className="mt-4 text-sm">
-        Have an account? <Link to="/login" className="text-blue-600 underline">Login</Link>
+      <p className="mt-4 text-sm text-center">
+        Already have an account? <Link to="/login" className="text-blue-600 underline">Login</Link>
       </p>
     </div>
   )
