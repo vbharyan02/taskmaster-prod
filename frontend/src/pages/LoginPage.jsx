@@ -13,10 +13,18 @@ export default function LoginPage() {
     setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError(error.message)
-    } else {
-      navigate('/')
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Wrong email or password.')
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Please check your email to confirm your account.')
+      } else if (error.message.includes('Signups not allowed')) {
+        setError('Sign up is currently disabled.')
+      } else {
+        setError(error.message)
+      }
+      return
     }
+    navigate('/')
   }
 
   return (

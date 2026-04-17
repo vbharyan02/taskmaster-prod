@@ -1,4 +1,4 @@
-# fitness-tracker — Database Setup
+# expense-tracker — Database Setup
 
 ## How to run
 
@@ -29,19 +29,18 @@ Then:
 
 ## Table Structure
 
-### `workouts`
+### `expenses`
 
-| Column          | Type        | Nullable | Default             | Notes                         |
-|-----------------|-------------|----------|---------------------|-------------------------------|
-| `id`            | UUID        | NO       | `gen_random_uuid()` | Primary key                   |
-| `user_id`       | UUID        | NO       |                     | FK → `auth.users(id)` CASCADE |
-| `exercise_name` | TEXT        | NO       |                     | Name of the exercise          |
-| `sets`          | INTEGER     | NO       |                     | Number of sets                |
-| `reps`          | INTEGER     | NO       |                     | Number of reps per set        |
-| `weight`        | INTEGER     | NO       |                     | Weight in kg (0 for bodyweight)|
-| `date`          | DATE        | NO       |                     | Date the workout was performed|
-| `created_at`    | TIMESTAMPTZ | NO       | `NOW()`             |                               |
-| `updated_at`    | TIMESTAMPTZ | NO       | `NOW()`             | Auto-updated via trigger      |
+| Column       | Type        | Nullable | Default             | Notes                         |
+|--------------|-------------|----------|---------------------|-------------------------------|
+| `id`         | UUID        | NO       | `gen_random_uuid()` | Primary key                   |
+| `user_id`    | UUID        | NO       |                     | FK → `auth.users(id)` CASCADE |
+| `title`      | TEXT        | NO       |                     | Short description of expense  |
+| `amount`     | NUMERIC     | NO       |                     | Expense amount                |
+| `category`   | TEXT        | NO       |                     | Category label (e.g. Food)    |
+| `date`       | DATE        | NO       |                     | Date the expense occurred     |
+| `created_at` | TIMESTAMPTZ | NO       | `NOW()`             |                               |
+| `updated_at` | TIMESTAMPTZ | NO       | `NOW()`             | Auto-updated via trigger      |
 
 ---
 
@@ -49,11 +48,11 @@ Then:
 
 All policies restrict access so that **each user can only see and modify their own rows** (`auth.uid() = user_id`).
 
-### `workouts`
+### `expenses`
 
 | Policy             | Operation | Rule                   |
 |--------------------|-----------|------------------------|
-| `workouts_select`  | SELECT    | `auth.uid() = user_id` |
-| `workouts_insert`  | INSERT    | `auth.uid() = user_id` |
-| `workouts_update`  | UPDATE    | `auth.uid() = user_id` |
-| `workouts_delete`  | DELETE    | `auth.uid() = user_id` |
+| `expenses_select`  | SELECT    | `auth.uid() = user_id` |
+| `expenses_insert`  | INSERT    | `auth.uid() = user_id` |
+| `expenses_update`  | UPDATE    | `auth.uid() = user_id` |
+| `expenses_delete`  | DELETE    | `auth.uid() = user_id` |

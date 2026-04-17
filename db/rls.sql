@@ -1,16 +1,16 @@
 -- ============================================================
--- RLS: workouts
+-- RLS: expenses
 -- ============================================================
-ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "workouts_select" ON workouts
+CREATE POLICY "expenses_select" ON expenses
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "workouts_insert" ON workouts
+CREATE POLICY "expenses_insert" ON expenses
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "workouts_update" ON workouts
+CREATE POLICY "expenses_update" ON expenses
   FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "workouts_delete" ON workouts
+CREATE POLICY "expenses_delete" ON expenses
   FOR DELETE USING (auth.uid() = user_id);

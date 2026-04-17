@@ -15,8 +15,16 @@ export default function RegisterPage() {
     setMessage('')
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      setError(error.message)
-    } else if (data.session) {
+      if (error.message.includes('User already registered')) {
+        setError('An account with this email already exists.')
+      } else if (error.message.includes('Signups not allowed')) {
+        setError('Sign up is currently disabled. Contact the admin.')
+      } else {
+        setError(error.message)
+      }
+      return
+    }
+    if (data.session) {
       navigate('/')
     } else {
       setMessage('Check your email to confirm your account.')
