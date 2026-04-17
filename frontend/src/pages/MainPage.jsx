@@ -1,56 +1,43 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import supabase from '../lib/supabase'
-import useAuthStore from '../store/authStore'
 
-function formatTime(secs) {
-  const h = Math.floor(secs / 3600).toString().padStart(2, '0')
-  const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0')
-  const s = (secs % 60).toString().padStart(2, '0')
-  return `${h}:${m}:${s}`
-}
+const STATUS_OPTIONS = ['todo', 'in_progress', 'done']
 
 export default function MainPage() {
-  const [entries, setEntries] = useState([])
+  const [tasks, setTasks] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [createError, setCreateError] = useState('')
-  const timerRef = useRef(null)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [status, setStatus] = useState('todo')
+  const [formError, setFormError] = useState('')
   const navigate = useNavigate()
-  const { user } = useAuthStore()
 
-  const running = entries.find(e => e.is_running)
-  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => { fetchTasks() }, [])
 
-  useEffect(() => { if (user) fetchAll() }, [user])
-
-  useEffect(() => {
-    if (running) {
-      timerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - new Date(running.start_time).getTime()) / 1000))
-      }, 1000)
-    } else {
-      clearInterval(timerRef.current)
-      setElapsed(0)
-    }
-    return () => clearInterval(timerRef.current)
-  }, [running?.id])
-
-  async function fetchAll() {
+  async function fetchTasks() {
     setIsLoading(true)
     setError(null)
     try {
       const { data, error } = await supabase
-        .from('time_entries')
+        .from('tasks')
         .select('*')
         .order('created_at', { ascending: false })
       if (error) {
-        setError(error.message.includes('does not exist') || error.message.includes('schema cache')
-          ? 'Something went wrong. Please try again later.'
-          : error.message)
+        if (
+          error.message.includes('does not exist') ||
+          error.message.includes('schema cache') ||
+          error.message.includes('relation') ||
+          error.message.includes('Could not find')
+        ) {
+          setError('Something went wrong. Please try again later.')
+        } else {
+          setError(error.message)
+        }
         return
       }
-      setEntries(data || [])
+      setTasks(data || [])
     } catch {
       setError('Connection error. Please check your internet and try again.')
     } finally {
@@ -58,39 +45,31 @@ export default function MainPage() {
     }
   }
 
-  async function startTimer(title) {
-    if (!title.trim()) { setCreateError('Enter a title first.'); return }
-    setCreateError('')
+  async function handleCreate(e) {
+    e.preventDefault()
+    if (!title.trim()) { setFormError('Title is required'); return }
+    setFormError('')
     try {
-      const { data, error } = await supabase.from('time_entries').insert({
-        title,
-        start_time: new Date().toISOString(),
-        is_running: true,
-        user_id: user.id
-      }).select().single()
-      if (error) { setCreateError(error.message); return }
-      setEntries(prev => [data, ...prev])
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({ title: title.trim(), description: description.trim() || null, status: status || 'todo', user_id: user.id })
+        .select()
+        .single()
+      if (error) { setFormError(error.message); return }
+      setTasks([data, ...tasks])
+      setTitle('')
+      setDescription('')
+      setStatus('todo')
     } catch {
-      setCreateError('Connection error. Please try again.')
+      setFormError('Connection error. Please try again.')
     }
   }
 
-  async function stopTimer() {
-    const now = new Date()
-    const durationMinutes = Math.round((now - new Date(running.start_time)) / 60000)
-    const { data, error } = await supabase.from('time_entries').update({
-      end_time: now.toISOString(),
-      is_running: false,
-      duration_minutes: durationMinutes
-    }).eq('id', running.id).select().single()
-    if (error) { setError(error.message); return }
-    setEntries(prev => prev.map(e => e.id === running.id ? data : e))
-  }
-
   async function handleDelete(id) {
-    const { error } = await supabase.from('time_entries').delete().eq('id', id)
+    const { error } = await supabase.from('tasks').delete().eq('id', id)
     if (error) { setError(error.message); return }
-    setEntries(prev => prev.filter(e => e.id !== id))
+    setTasks(tasks.filter(t => t.id !== id))
   }
 
   async function handleLogout() {
@@ -104,63 +83,65 @@ export default function MainPage() {
   return (
     <div className="max-w-lg mx-auto mt-10 px-4 pb-20">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Time Tracker</h1>
-        <div className="space-x-3">
-          <Link to="/tasks" className="text-blue-600 underline text-sm">Tasks</Link>
-          <button onClick={handleLogout} className="bg-gray-200 px-3 py-1 rounded text-sm">Logout</button>
-        </div>
+        <h1 className="text-2xl font-bold">My Tasks</h1>
+        <button onClick={handleLogout} className="bg-gray-200 px-3 py-1 rounded text-sm">Logout</button>
       </div>
 
-      {running ? (
-        <div className="border rounded p-4 mb-6 bg-blue-50">
-          <div className="text-sm text-gray-500 mb-1">Running: {running.title}</div>
-          <div className="text-3xl font-mono font-bold mb-3">{formatTime(elapsed)}</div>
-          <button onClick={stopTimer} className="bg-red-600 text-white px-4 py-2 rounded">Stop Timer</button>
+      <form onSubmit={handleCreate} className="space-y-3 mb-8">
+        <input
+          type="text"
+          placeholder="Task title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          className="border rounded px-3 py-2 w-full"
+        />
+        <input
+          type="text"
+          placeholder="Description (optional)"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          className="border rounded px-3 py-2 w-full"
+        />
+        <select
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+          className="border rounded px-3 py-2 w-full"
+        >
+          {STATUS_OPTIONS.map(s => (
+            <option key={s} value={s}>{s.replace('_', ' ')}</option>
+          ))}
+        </select>
+        {formError && <p className="text-red-500 text-sm">{formError}</p>}
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded w-full">
+          Add Task
+        </button>
+      </form>
+
+      {tasks.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          No tasks yet. Create your first one above.
         </div>
       ) : (
-        <TimerForm onStart={startTimer} createError={createError} />
-      )}
-
-      {entries.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">No time entries yet. Start your first timer above.</div>
-      ) : (
         <ul className="space-y-2">
-          {entries.map(e => (
-            <li key={e.id} className="flex justify-between items-center border rounded px-3 py-2">
+          {tasks.map(task => (
+            <li key={task.id} className="flex justify-between items-start border rounded px-3 py-2">
               <div>
-                <span className="font-medium">{e.title}</span>
-                {e.is_running && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1 rounded">Running</span>}
-                <div className="text-sm text-gray-500">
-                  {e.duration_minutes != null ? `${e.duration_minutes}m` : e.is_running ? 'In progress' : '—'}
-                  {e.start_time && ` · ${new Date(e.start_time).toLocaleDateString()}`}
-                </div>
+                <p className="font-medium">{task.title}</p>
+                {task.description && <p className="text-sm text-gray-500">{task.description}</p>}
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded mt-1 inline-block">
+                  {task.status.replace('_', ' ')}
+                </span>
               </div>
-              <button onClick={() => handleDelete(e.id)} className="text-red-500 text-sm ml-4">Delete</button>
+              <button
+                onClick={() => handleDelete(task.id)}
+                className="text-red-500 text-sm ml-4 flex-shrink-0"
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>
       )}
-    </div>
-  )
-}
-
-function TimerForm({ onStart, createError }) {
-  const [title, setTitle] = useState('')
-  return (
-    <div className="border rounded p-4 mb-6 space-y-3">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          placeholder="What are you working on?"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          className="border rounded px-3 py-2 flex-1"
-        />
-      </div>
-      {createError && <p className="text-red-500 text-sm">{createError}</p>}
-      <button onClick={() => { onStart(title); setTitle('') }} className="bg-blue-600 text-white px-4 py-2 rounded w-full">
-        Start Timer
-      </button>
     </div>
   )
 }

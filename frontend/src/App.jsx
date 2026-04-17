@@ -1,28 +1,31 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import useAuthStore from './store/authStore'
-import ProtectedRoute from './components/ProtectedRoute'
+import supabase from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashboardPage'
-import TasksListPage from './pages/TasksListPage'
-import TaskDetailPage from './pages/TaskDetailPage'
+import MainPage from './pages/MainPage'
 
 export default function App() {
-  const { initialize, loading, user } = useAuthStore()
+  const [session, setSession] = useState(undefined)
 
-  useEffect(() => { initialize() }, [])
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
-  if (loading) return null
+  if (session === undefined) return null
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
-        <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
-        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/tasks" element={<ProtectedRoute><TasksListPage /></ProtectedRoute>} />
-        <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetailPage /></ProtectedRoute>} />
+        <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
+        <Route path="/register" element={session ? <Navigate to="/" /> : <RegisterPage />} />
+        <Route path="/" element={session ? <MainPage /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )
