@@ -26,7 +26,7 @@ export default function DashboardPage() {
     try {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      const { data: taskData, error: taskErr } = await supabase.from('tasks').select('id, name')
+      const { data: taskData, error: taskErr } = await supabase.from('tasks').select('id, title')
       if (taskErr) {
         setError(taskErr.message.includes('does not exist') || taskErr.message.includes('schema cache')
           ? 'Something went wrong. Please try again later.'
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         return
       }
       const map = {}
-      taskData.forEach(t => { map[t.id] = t.name })
+      taskData.forEach(t => { map[t.id] = t.title })
       setTaskMap(map)
 
       const { data: entryData, error: entryErr } = await supabase

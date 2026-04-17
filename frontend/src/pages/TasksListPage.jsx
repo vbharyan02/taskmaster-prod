@@ -40,7 +40,7 @@ export default function TasksListPage() {
     e.preventDefault()
     const { data: { user } } = await supabase.auth.getUser()
     const { data, error } = await supabase.from('tasks')
-      .insert({ name, description, user_id: user.id })
+      .insert({ title: name, description, user_id: user.id })
       .select().single()
     if (error) { setError(error.message); return }
     setTasks([data, ...tasks])
@@ -51,7 +51,7 @@ export default function TasksListPage() {
   async function handleEdit(e) {
     e.preventDefault()
     const { data, error } = await supabase.from('tasks')
-      .update({ name: editName, description: editDescription })
+      .update({ title: editName, description: editDescription })
       .eq('id', editId)
       .select().single()
     if (error) { setError(error.message); return }
@@ -112,11 +112,11 @@ export default function TasksListPage() {
               ) : (
                 <div className="flex justify-between items-start">
                   <div>
-                    <Link to={`/tasks/${task.id}`} className="font-semibold text-blue-700 hover:underline">{task.name}</Link>
+                    <Link to={`/tasks/${task.id}`} className="font-semibold text-blue-700 hover:underline">{task.title}</Link>
                     {task.description && <p className="text-sm text-gray-500 mt-1">{task.description}</p>}
                   </div>
                   <div className="space-x-2 flex-shrink-0 ml-4">
-                    <button onClick={() => { setEditId(task.id); setEditName(task.name); setEditDescription(task.description || '') }}
+                    <button onClick={() => { setEditId(task.id); setEditName(task.title); setEditDescription(task.description || '') }}
                       className="bg-gray-200 px-3 py-1 rounded text-sm">Edit</button>
                     <button onClick={() => handleDelete(task.id)}
                       className="bg-red-500 text-white px-3 py-1 rounded text-sm">Delete</button>

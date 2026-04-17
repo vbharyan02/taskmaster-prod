@@ -115,7 +115,7 @@ export default function TaskDetailPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <Link to="/tasks" className="text-blue-600 underline text-sm">← Tasks</Link>
-          <h1 className="text-2xl font-bold mt-1">{task?.name}</h1>
+          <h1 className="text-2xl font-bold mt-1">{task?.title}</h1>
           {task?.description && <p className="text-gray-500 text-sm mt-1">{task.description}</p>}
         </div>
         <button onClick={handleLogout} className="bg-gray-200 px-3 py-1 rounded text-sm">Logout</button>
