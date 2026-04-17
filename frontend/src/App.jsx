@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import supabase from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import MainPage from './pages/MainPage'
+import DashboardPage from './pages/DashboardPage'
+import TasksListPage from './pages/TasksListPage'
+import TaskDetailPage from './pages/TaskDetailPage'
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -21,7 +23,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
         <Route path="/register" element={session ? <Navigate to="/" /> : <RegisterPage />} />
-        <Route path="/" element={session ? <MainPage /> : <Navigate to="/login" />} />
+        <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/login" />} />
+        <Route path="/tasks" element={session ? <TasksListPage /> : <Navigate to="/login" />} />
+        <Route path="/tasks/:id" element={session ? <TaskDetailPage /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )

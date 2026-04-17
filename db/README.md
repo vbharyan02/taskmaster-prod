@@ -1,58 +1,83 @@
-# expense-tracker — Database Setup
+# time-tracker — Database Setup
+
+Supabase (Postgres) schema for the **time-tracker** app.
+
+---
 
 ## How to run
 
-### 1. Run schema.sql
-1. Open your Supabase project dashboard
-2. Go to **SQL Editor** (left sidebar)
-3. Click **New query**
-4. Paste the contents of `schema.sql`
-5. Click **Run**
+### 1. Run `schema.sql`
+1. Open your Supabase project.
+2. Go to **Dashboard → SQL Editor**.
+3. Paste the contents of `schema.sql` and click **Run**.
+4. This creates the `tasks` and `time_entries` tables, indexes, and `updated_at` triggers.
 
-### 2. Run rls.sql
-After schema.sql succeeds:
-1. Open a new SQL Editor query
-2. Paste the contents of `rls.sql`
-3. Click **Run**
+### 2. Run `rls.sql`
+1. In the SQL Editor, paste the contents of `rls.sql` and click **Run**.
+2. Enables Row Level Security and creates four policies per table.
+3. **Must be run after `schema.sql`.**
 
-### 3. Run seed.sql (optional, for testing)
-Before running seed.sql:
-- Create a test user via Supabase Auth (Dashboard → Authentication → Users → Invite)
-- Replace the placeholder UUID `00000000-0000-0000-0000-000000000001` in `seed.sql` with the real user's UUID
-
-Then:
-1. Open a new SQL Editor query
-2. Paste the contents of `seed.sql`
-3. Click **Run**
+### 3. Run `seed.sql` (optional — for testing only)
+1. Create a test user via **Dashboard → Authentication → Users → Add user**.
+2. Copy the test user's UUID.
+3. In `seed.sql`, replace every `00000000-0000-0000-0000-000000000001` with that UUID.
+4. Paste into the SQL Editor and click **Run**.
+5. **Must be run after `schema.sql`.**
 
 ---
 
-## Table Structure
+## Table structure
 
-### `expenses`
+### `tasks`
 
-| Column       | Type        | Nullable | Default             | Notes                         |
-|--------------|-------------|----------|---------------------|-------------------------------|
-| `id`         | UUID        | NO       | `gen_random_uuid()` | Primary key                   |
-| `user_id`    | UUID        | NO       |                     | FK → `auth.users(id)` CASCADE |
-| `title`      | TEXT        | NO       |                     | Short description of expense  |
-| `amount`     | NUMERIC     | NO       |                     | Expense amount                |
-| `category`   | TEXT        | NO       |                     | Category label (e.g. Food)    |
-| `date`       | DATE        | NO       |                     | Date the expense occurred     |
-| `created_at` | TIMESTAMPTZ | NO       | `NOW()`             |                               |
-| `updated_at` | TIMESTAMPTZ | NO       | `NOW()`             | Auto-updated via trigger      |
+| Column        | Type        | Nullable | Notes |
+|---------------|-------------|----------|-------|
+| `id`          | `uuid`      | NO       | Primary key, auto-generated |
+| `user_id`     | `uuid`      | NO       | FK → `auth.users(id)` ON DELETE CASCADE |
+| `name`        | `text`      | NO       | Task title |
+| `description` | `text`      | YES      | Optional longer description |
+| `created_at`  | `timestamptz` | NO     | Auto-set to NOW() |
+| `updated_at`  | `timestamptz` | NO     | Auto-updated via trigger |
+
+### `time_entries`
+
+| Column             | Type        | Nullable | Notes |
+|--------------------|-------------|----------|-------|
+| `id`               | `uuid`      | NO       | Primary key, auto-generated |
+| `user_id`          | `uuid`      | NO       | FK → `auth.users(id)` ON DELETE CASCADE |
+| `task_id`          | `uuid`      | NO       | FK → `tasks(id)` ON DELETE CASCADE |
+| `started_at`       | `timestamptz` | NO     | When the timer started |
+| `stopped_at`       | `timestamptz` | YES    | NULL if timer is still running |
+| `duration_seconds` | `integer`   | YES      | Computed duration; NULL while running |
+| `created_at`       | `timestamptz` | NO     | Auto-set to NOW() |
+| `updated_at`       | `timestamptz` | NO     | Auto-updated via trigger |
 
 ---
 
-## RLS Policy Summary
+## RLS policy summary
 
-All policies restrict access so that **each user can only see and modify their own rows** (`auth.uid() = user_id`).
+Row Level Security is enabled on both tables. All policies check `auth.uid() = user_id` — **users can only access their own rows**.
 
-### `expenses`
+| Table          | Policy                  | Operation | Rule |
+|----------------|-------------------------|-----------|------|
+| `tasks`        | `tasks_select`          | SELECT    | `auth.uid() = user_id` |
+| `tasks`        | `tasks_insert`          | INSERT    | `auth.uid() = user_id` |
+| `tasks`        | `tasks_update`          | UPDATE    | `auth.uid() = user_id` |
+| `tasks`        | `tasks_delete`          | DELETE    | `auth.uid() = user_id` |
+| `time_entries` | `time_entries_select`   | SELECT    | `auth.uid() = user_id` |
+| `time_entries` | `time_entries_insert`   | INSERT    | `auth.uid() = user_id` |
+| `time_entries` | `time_entries_update`   | UPDATE    | `auth.uid() = user_id` |
+| `time_entries` | `time_entries_delete`   | DELETE    | `auth.uid() = user_id` |
 
-| Policy             | Operation | Rule                   |
-|--------------------|-----------|------------------------|
-| `expenses_select`  | SELECT    | `auth.uid() = user_id` |
-| `expenses_insert`  | INSERT    | `auth.uid() = user_id` |
-| `expenses_update`  | UPDATE    | `auth.uid() = user_id` |
-| `expenses_delete`  | DELETE    | `auth.uid() = user_id` |
+---
+
+## Verify setup
+
+After running `schema.sql`, confirm tables exist:
+
+```sql
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public';
+```
+
+Expected output: `tasks`, `time_entries`.
