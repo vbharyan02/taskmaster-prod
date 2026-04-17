@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import supabase from '../lib/supabase'
+import useAuthStore from '../store/authStore'
 
 export default function TasksListPage() {
   const [tasks, setTasks] = useState([])
@@ -12,8 +13,9 @@ export default function TasksListPage() {
   const [editName, setEditName] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const navigate = useNavigate()
+  const { user } = useAuthStore()
 
-  useEffect(() => { fetchTasks() }, [])
+  useEffect(() => { if (user) fetchTasks() }, [user])
 
   async function fetchTasks() {
     setIsLoading(true)
@@ -22,7 +24,7 @@ export default function TasksListPage() {
       const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
       if (error) {
         setError(error.message.includes('does not exist') || error.message.includes('schema cache')
-          ? 'Database not set up yet. Please run schema.sql in Supabase.'
+          ? 'Something went wrong. Please try again later.'
           : error.message)
         return
       }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import supabase from '../lib/supabase'
+import useAuthStore from '../store/authStore'
 
 function formatDuration(seconds) {
   if (!seconds && seconds !== 0) return '—'
@@ -22,8 +23,9 @@ export default function TaskDetailPage() {
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
   const navigate = useNavigate()
+  const { user } = useAuthStore()
 
-  useEffect(() => { fetchData() }, [id])
+  useEffect(() => { if (user) fetchData() }, [id, user])
   useEffect(() => () => clearInterval(timerRef.current), [])
 
   async function fetchData() {
@@ -34,7 +36,7 @@ export default function TaskDetailPage() {
         .from('tasks').select('*').eq('id', id).single()
       if (taskErr) {
         setError(taskErr.message.includes('does not exist') || taskErr.message.includes('schema cache')
-          ? 'Database not set up yet. Please run schema.sql in Supabase.'
+          ? 'Something went wrong. Please try again later.'
           : taskErr.message)
         return
       }

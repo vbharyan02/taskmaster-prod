@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import supabase from '../lib/supabase'
+import useAuthStore from '../store/authStore'
 
 export default function MainPage() {
   const [entries, setEntries] = useState([])
@@ -15,10 +16,11 @@ export default function MainPage() {
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
   const navigate = useNavigate()
+  const { user } = useAuthStore()
 
   const running = entries.find(e => e.is_running)
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => { if (user) fetchAll() }, [user])
 
   useEffect(() => {
     if (running) {
@@ -42,7 +44,7 @@ export default function MainPage() {
       ])
       if (e1) {
         setError(e1.message.includes('does not exist') || e1.message.includes('schema cache')
-          ? 'Database not set up yet. Please run schema.sql in Supabase.'
+          ? 'Something went wrong. Please try again later.'
           : e1.message)
         return
       }

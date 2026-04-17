@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import supabase from './lib/supabase'
+import useAuthStore from './store/authStore'
+import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
@@ -8,24 +9,20 @@ import TasksListPage from './pages/TasksListPage'
 import TaskDetailPage from './pages/TaskDetailPage'
 
 export default function App() {
-  const [session, setSession] = useState(undefined)
+  const { initialize, loading, user } = useAuthStore()
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session))
-    return () => subscription.unsubscribe()
-  }, [])
+  useEffect(() => { initialize() }, [])
 
-  if (session === undefined) return null
+  if (loading) return null
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
-        <Route path="/register" element={session ? <Navigate to="/" /> : <RegisterPage />} />
-        <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/login" />} />
-        <Route path="/tasks" element={session ? <TasksListPage /> : <Navigate to="/login" />} />
-        <Route path="/tasks/:id" element={session ? <TaskDetailPage /> : <Navigate to="/login" />} />
+        <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+        <Route path="/register" element={user ? <Navigate to="/" /> : <RegisterPage />} />
+        <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/tasks" element={<ProtectedRoute><TasksListPage /></ProtectedRoute>} />
+        <Route path="/tasks/:id" element={<ProtectedRoute><TaskDetailPage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )
