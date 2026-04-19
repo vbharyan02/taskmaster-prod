@@ -18,14 +18,14 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  if (session === undefined) return null
+  if (session === undefined) return <div className="text-center py-8">Loading...</div>
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
         <Route path="/register" element={session ? <Navigate to="/" /> : <RegisterPage />} />
-        <Route path="/" element={session ? <MainPage /> : <Navigate to="/login" />} />
+        <Route path="/" element={session ? <MainPage session={session} /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )

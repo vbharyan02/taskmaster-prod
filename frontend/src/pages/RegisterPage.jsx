@@ -5,15 +5,16 @@ import supabase from '../lib/supabase'
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
-    setMessage('')
+    setError(null)
+    setLoading(true)
     const { data, error } = await supabase.auth.signUp({ email, password })
+    setLoading(false)
     if (error) {
       if (error.message.includes('User already registered')) {
         setError('An account with this email already exists.')
@@ -27,13 +28,13 @@ export default function RegisterPage() {
     if (data.session) {
       navigate('/')
     } else {
-      setMessage('Check your email to confirm your account.')
+      navigate('/login', { state: { message: 'Check your email to confirm your account.' } })
     }
   }
 
   return (
     <div className="max-w-sm mx-auto mt-20 px-4">
-      <h1 className="text-2xl font-bold mb-6">Register</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">Create Account</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
@@ -52,13 +53,16 @@ export default function RegisterPage() {
           required
         />
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        {message && <p className="text-green-600 text-sm">{message}</p>}
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded w-full">
-          Register
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full disabled:opacity-50"
+        >
+          {loading ? 'Registering...' : 'Register'}
         </button>
       </form>
-      <p className="mt-4 text-sm text-center">
-        Already have an account? <Link to="/login" className="text-blue-600 underline">Login</Link>
+      <p className="text-center mt-4 text-sm">
+        Have an account? <Link to="/login" className="text-blue-600 underline">Login</Link>
       </p>
     </div>
   )
