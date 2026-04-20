@@ -30,7 +30,7 @@ export default function LoginPage() {
 
   return (
     <div className="max-w-sm mx-auto mt-20 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-center">Book Tracker</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">Fitness Tracker</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
